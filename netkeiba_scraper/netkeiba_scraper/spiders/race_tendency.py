@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 # 重賞レースの過去結果取得スクリプト
 
@@ -13,7 +15,7 @@ import sys, re
 from netkeiba_scraper.items import RaceRecord
 
 # idは重賞によって変わる #
-TARGET_URL = 'http://race.netkeiba.com/?pid=special&id=0007'
+TARGET_URL = 'http://race.netkeiba.com/?pid=special&id=0010'
 
 class RaceTendencySpider(scrapy.Spider):
 
@@ -37,9 +39,12 @@ class RaceTendencySpider(scrapy.Spider):
             item = RaceRecord()
             item['rank'] = content.css('td::text').extract()[0] # 着順
             item['horse_name'] = content.css('td a::text').extract()[0] # 馬名
+            item['female'] = 1 if re.sub(r"\d+", '', content.css('td::text').extract()[4]) == '牝' else 0 # 牝馬フラグ
+            item['age'] = re.sub(r"\D+", '', content.css('td::text').extract()[4]) # 馬齢
+            item['handi'] = content.css('td::text').extract()[5] # 斤量
             # text要素までcssメソッドで抜き出すと，各tdのtext有無でindexがずれてしまう #
             # td要素で抽出してからhtmlタグを取り除く #
-            item['weight'] = self.remove_html_tag(content.css('td').extract()[14]) # 馬体重
+            item['weight'] = re.sub(r"\(.+\)", '', self.remove_html_tag(content.css('td').extract()[14])) # 馬体重
 
             yield item
 
