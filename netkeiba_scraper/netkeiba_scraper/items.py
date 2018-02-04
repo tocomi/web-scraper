@@ -16,3 +16,7 @@ class RaceRecord(scrapy.Item):
     female = scrapy.Field()
     handi = scrapy.Field()
     weight = scrapy.Field()
+
+class HorseData(scrapy.Item):
+
+    horse_name = scrapy.Field()
