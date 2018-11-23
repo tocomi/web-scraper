@@ -18,4 +18,4 @@ class NetkeibaScraperPipeline(object):
             if item['rank'] == '中' or item['rank'] == '取':
                 raise DropItem('race exclusion data')
 
-            return item
+        return item

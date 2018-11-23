@@ -29,6 +29,4 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             item = HorseData()
             item['horse_name'] = horse.css('.h_name a::text').extract_first()
 
-            print(item)
-
             yield item
