@@ -89,3 +89,4 @@ ITEM_PIPELINES = {
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
 DOWNLOAD_DELAY = 1
+FEED_EXPORT_ENCODING='utf-8'
