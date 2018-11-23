@@ -8,6 +8,11 @@ lib/
 
 # output
 *.csv
+*.json
+*.jl
+
+# vscode
+.vscode
 
 # Macintosh
 .DS_Store

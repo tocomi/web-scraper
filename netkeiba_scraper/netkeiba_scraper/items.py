@@ -7,7 +7,6 @@
 
 import scrapy
 
-
 class RaceRecord(scrapy.Item):
 
     rank = scrapy.Field()

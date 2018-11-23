@@ -20,6 +20,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             yield scrapy.Request(self.start_urls[0] + url, self.parse_horse)
 
     def parse_horse(self, response):
+        print(response.css('.racedata dd h1::text').extract_first())
         for (index, horse) in enumerate(response.css('#shutuba table tr')):
             # 1行目はヘッダー #
             if index == 0:
@@ -27,6 +28,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
             item = HorseData()
             item['horse_name'] = horse.css('.h_name a::text').extract_first()
-            print(item['horse_name'])
+
+            print(item)
 
             yield item
