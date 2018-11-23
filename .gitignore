@@ -1,6 +1,10 @@
 # Python
 __pycache__
 .idea
+.Python
+bin/
+include/
+lib/
 
 # output
 *.csv
