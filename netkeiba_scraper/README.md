@@ -10,9 +10,9 @@ Python 3.7.1
 
 ## command
 
-`scrapy crawl [spider_name]`
+`scrapy crawl [spider_name] -o hoge.json`
 
 ## spider type
 
-- race_tendency
 - umaaji_calculator
+- race_tendency

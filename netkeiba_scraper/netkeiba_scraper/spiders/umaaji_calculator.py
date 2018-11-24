@@ -19,9 +19,9 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         for url in response.css('.sub_menu a::attr(href)').re(r'/\?pid.*mode=shutuba'):
             yield scrapy.Request(self.start_urls[0] + url, self.parse_horse)
 
+
     def parse_horse(self, response):
-        result = {}
-        result['race_name'] = response.css('.racedata dd h1::text').extract_first()
+        result = self.get_race_data(response)
         result['horses'] = []
         for (index, horse) in enumerate(response.css('#shutuba table tr')):
             # 1行目はヘッダー #
@@ -33,3 +33,11 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             result['horses'].append(item)
         
         yield result
+
+    def get_race_data(self, response):
+        racedata = response.css('.racedata dd')
+        
+        result = {}
+        result['race_name'] = racedata.css('h1::text').extract_first()
+        result['race_ground'] = response.css('p::text').extract_first()
+        return result
