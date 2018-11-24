@@ -60,6 +60,11 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         for past_race_html in past_race_html_list:
             past_race = {}
             past_race['grade'] = self.parse_grade(self.get_grade(past_race_html))
+            condition = self.get_condition(past_race_html)
+            past_race['ground'] = condition['ground']
+            past_race['distance'] = condition['distance']
+            past_race['time'] = condition['time']
+            past_race['status'] = condition['status']
             past_race['diff'] = self.get_diff(past_race_html)
             past_races.append(past_race)
 
@@ -88,6 +93,26 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             grade = re.sub(before, after, grade)
         
         return grade
+
+    def get_condition(self, past_race_html):
+        condition_raw = past_race_html.css('.racebox').extract_first()
+        return self.parse_condition(condition_raw)
+    
+    def parse_condition(self, condition_raw):
+        condition = { 'ground': '', 'distance': '', 'time': '', 'status': '' }
+        if condition_raw == None:
+            return condition
+
+        regexp = re.compile("(芝|ダ)([0-9]{4})\xa0([0-9]{1}:[0-9]{2}.[0-9]{1})\xa0(良|稍|重|不)")
+        match = regexp.search(condition_raw)
+        if match == None:
+            return condition
+
+        condition['ground'] = match.group(1)
+        condition['distance'] = match.group(2)
+        condition['time'] = match.group(3)
+        condition['status'] = match.group(4)
+        return condition
     
     def get_diff(self, past_race_html):
         diff = past_race_html.css('.h_name_01::text').extract_first()
