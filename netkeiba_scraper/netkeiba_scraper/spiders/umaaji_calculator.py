@@ -13,7 +13,17 @@ class UmaajiCalculatorSpider(scrapy.Spider):
     def parse(self, response):
         # 本日のレース一覧からレース情報URLをパース #
         for url in response.css('.RaceList_Box dt a::attr(href)').re(r'/\?pid.*race.*'):
-            yield scrapy.Request(self.start_urls[0] + re.sub("mode=top", 'mode=shutuba', url), self.parse_horse)
+            yield scrapy.Request(self.make_url(url), self.parse_horse)
+
+    def make_url(self, url):
+        #    http://race.netkeiba.com/?pid=race_old&id=c201805050801 #
+        # -> http://race.netkeiba.com/?pid=race&id=c201805050801&mode=shutuba #
+        if 'race_old' in url:
+            return self.start_urls[0] + re.sub('race_old', 'race', url) + '&mode=shutuba'
+        
+        #    http://race.netkeiba.com/?pid=race&id=c201805050801&mode=top #
+        # -> http://race.netkeiba.com/?pid=race&id=c201805050801&mode=shutuba #
+        return self.start_urls[0] + re.sub('mode=top', 'mode=shutuba', url)
 
     def parse_race(self, response):
         # レース情報から馬柱へのリンクをパース #
@@ -49,7 +59,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         past_race_html_list = horse.css('.txt_l')[2:7]
         for past_race_html in past_race_html_list:
             past_race = {}
-            past_race['grade'] = self.get_grade(past_race_html)
+            past_race['grade'] = self.parse_grade(self.get_grade(past_race_html))
             past_race['diff'] = self.get_diff(past_race_html)
             past_races.append(past_race)
 
@@ -69,9 +79,16 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         match = regexp.search(grade)
         return match.group(0) if match != None else ''
 
+    replace_target = { '０': '0', '１': '1', '５': '5', '６': '6', '下': '' }
     def parse_grade(self, grade):
-        return grade;
+        if grade == '':
+            return grade
 
+        for (before, after) in self.replace_target.items():
+            grade = re.sub(before, after, grade)
+        
+        return grade
+    
     def get_diff(self, past_race_html):
         diff = past_race_html.css('.h_name_01::text').extract_first()
         return re.sub(r"(\(|\))", '', diff) if diff != None else diff
