@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
+import re
 
 from netkeiba_scraper.items import HorseData
 
@@ -28,16 +29,31 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             if index == 0:
                 continue
 
-            item = HorseData()
-            item['horse_name'] = horse.css('.h_name a::text').extract_first()
-            result['horses'].append(item)
+            horse_data = self.get_horse_data(horse)
+            result['horses'].append(horse_data)
         
         yield result
 
     def get_race_data(self, response):
         racedata = response.css('.racedata dd')
         
-        result = {}
-        result['race_name'] = racedata.css('h1::text').extract_first()
-        result['race_ground'] = response.css('p::text').extract_first()
-        return result
+        race_data = {}
+        race_data['race_name'] = racedata.css('h1::text').extract_first()
+        race_data['race_ground'] = response.css('p::text').extract_first()
+        return race_data
+
+    def get_horse_data(self, horse):
+        horse_data = {}
+        horse_data['horse_name'] = horse.css('.h_name a::text').extract_first()
+
+        past_races = []
+        past_race_html_list = horse.css('.txt_l')[2:7]
+        for past_race_html in past_race_html_list:
+            past_race = {}
+            diff = past_race_html.css('.h_name_01::text').extract_first()
+            past_race['diff'] = re.sub(r"(\(|\))", '', diff) if diff != None else diff
+            past_races.append(past_race)
+
+        horse_data['past_races'] = past_races
+
+        return horse_data
