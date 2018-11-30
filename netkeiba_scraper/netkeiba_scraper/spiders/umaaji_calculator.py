@@ -25,11 +25,6 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         # -> http://race.netkeiba.com/?pid=race&id=c201805050801&mode=shutuba #
         return self.start_urls[0] + re.sub('mode=top', 'mode=shutuba', url)
 
-    def parse_race(self, response):
-        # レース情報から馬柱へのリンクをパース #
-        for url in response.css('.sub_menu a::attr(href)').re(r'/\?pid.*mode=shutuba'):
-            yield scrapy.Request(self.start_urls[0] + url, self.parse_horse)
-
     def parse_horse(self, response):
         result = self.get_race_data(response)
         result['horses'] = []
@@ -47,13 +42,34 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         racedata = response.css('.racedata dd')
         
         race_data = {}
-        race_data['race_name'] = racedata.css('h1::text').extract_first()
-        race_data['race_ground'] = response.css('p::text').extract_first()
+        race_data['name'] = racedata.css('h1::text').extract_first()
+        regexp = re.compile("(芝|ダ)([0-9]{4})")
+        match = regexp.search(response.css('p::text').extract_first())
+        race_data['ground'] = match.group(1)
+        race_data['distance'] = match.group(2)
+        race_data['grade'] = self.parse_grade(self.get_race_grade(response.css('.data_intro')))
         return race_data
+
+    def get_race_grade(self, race_html):
+        regexp = re.compile("([０-９]{3,4}|未勝利|新馬)")
+        match = regexp.search(race_html.css('.racedata dd h1::text').extract_first())
+        if match:
+            return match.group(1)
+
+        match = regexp.search(race_html.css('.race_otherdata p::text').extract_first())
+        if match:
+            return match.group(1)
+
+        regexp = re.compile("(g1|g2|g3|op)")
+        match = regexp.search(race_html.css('.racedata h1 img::attr(src)').extract_first())
+        if match:
+            return match.group(1).upper()
+
+        return ''
 
     def get_horse_data(self, horse):
         horse_data = {}
-        horse_data['horse_name'] = horse.css('.h_name a::text').extract_first()
+        horse_data['name'] = horse.css('.h_name a::text').extract_first()
 
         past_races = []
         past_race_html_list = horse.css('.txt_l')[2:7]
