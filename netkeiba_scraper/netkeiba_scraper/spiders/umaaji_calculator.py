@@ -14,6 +14,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         # 本日のレース一覧からレース情報URLをパース #
         for url in response.css('.RaceList_Box dt a::attr(href)').re(r'/\?pid.*race.*'):
             yield scrapy.Request(self.make_url(url), self.parse_horse)
+        # return scrapy.Request("https://race.netkeiba.com/?pid=race&id=c201807040311&mode=shutuba", self.parse_horse)
 
     def make_url(self, url):
         #    http://race.netkeiba.com/?pid=race_old&id=c201805050801 #
@@ -71,17 +72,28 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         horse_data = {}
         horse_data['name'] = horse.css('.h_name a::text').extract_first()
 
+        age_handi = horse.css('.txt_l')[1].css('::text').extract_first()
+        regexp = re.compile("(牡|牝|セ)([0-9]{1,2})")
+        match = regexp.search(age_handi)
+        horse_data['sex'] = match.group(1)
+        horse_data['age'] = match.group(2)
+
+        horse_data['jockey'] = horse.css('.txt_l')[1].css('a::text').extract_first()
+
         past_races = []
         past_race_html_list = horse.css('.txt_l')[2:7]
         for past_race_html in past_race_html_list:
             past_race = {}
             past_race['grade'] = self.parse_grade(self.get_grade(past_race_html))
+
             condition = self.get_condition(past_race_html)
             past_race['ground'] = condition['ground']
             past_race['distance'] = condition['distance']
             past_race['time'] = condition['time']
             past_race['status'] = condition['status']
+
             past_race['diff'] = self.get_diff(past_race_html)
+
             past_races.append(past_race)
 
         horse_data['past_races'] = past_races
