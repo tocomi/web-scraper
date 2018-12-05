@@ -12,9 +12,9 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
     def parse(self, response):
         # 本日のレース一覧からレース情報URLをパース #
-        for url in response.css('.RaceList_Box dt a::attr(href)').re(r'/\?pid.*race.*'):
-            yield scrapy.Request(self.make_url(url), self.parse_horse)
-        # return scrapy.Request("https://race.netkeiba.com/?pid=race&id=c201807040311&mode=shutuba", self.parse_horse)
+        # for url in response.css('.RaceList_Box dt a::attr(href)').re(r'/\?pid.*race.*'):
+        #     yield scrapy.Request(self.make_url(url), self.parse_horse)
+        return scrapy.Request("https://race.netkeiba.com/?pid=race&id=c201807040311&mode=shutuba", self.parse_horse)
 
     def make_url(self, url):
         #    http://race.netkeiba.com/?pid=race_old&id=c201805050801 #
@@ -72,11 +72,22 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         horse_data = {}
         horse_data['name'] = horse.css('.h_name a::text').extract_first()
 
-        age_handi = horse.css('.txt_l')[1].css('::text').extract_first()
+        age_sex = horse.css('.txt_l')[1].css('::text').extract_first()
         regexp = re.compile("(牡|牝|セ)([0-9]{1,2})")
-        match = regexp.search(age_handi)
+        match = regexp.search(age_sex)
         horse_data['sex'] = match.group(1)
         horse_data['age'] = match.group(2)
+
+        handi = horse.css('.txt_l')[1].css('::text').extract()[1]
+        horse_data['handi'] = handi.strip()
+
+        odds = horse.css('.txt_c::text').extract_first()
+        horse_data['odds'] = odds.strip()
+
+        rank = horse.css('.txt_c::text').extract()[1]
+        regexp = re.compile("[0-9]{1,2}")
+        match = regexp.search(rank)
+        horse_data['rank'] = match.group(0)
 
         horse_data['jockey'] = horse.css('.txt_l')[1].css('a::text').extract_first()
 
