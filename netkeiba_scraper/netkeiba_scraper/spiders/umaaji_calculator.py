@@ -43,7 +43,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         racedata = response.css('.racedata dd')
         
         race_data = {}
-        race_data['name'] = racedata.css('h1::text').extract_first()
+        race_data['name'] = racedata.css('h1::text').extract_first().strip()
         regexp = re.compile("(芝|ダ)([0-9]{4})")
         match = regexp.search(response.css('p::text').extract_first())
         race_data['ground'] = match.group(1)
@@ -95,6 +95,11 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         past_race_html_list = horse.css('.txt_l')[2:7]
         for past_race_html in past_race_html_list:
             past_race = {}
+
+            past_race['name'] = past_race_html.css('.race_name a::text').extract_first()
+            if past_race['name'] == None:
+                past_race['name'] = past_race_html.css('.race_name::text').extract_first()
+            
             past_race['grade'] = self.parse_grade(self.get_grade(past_race_html))
 
             condition = self.get_condition(past_race_html)
