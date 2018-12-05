@@ -12,9 +12,8 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
     def parse(self, response):
         # 本日のレース一覧からレース情報URLをパース #
-        # for url in response.css('.RaceList_Box dt a::attr(href)').re(r'/\?pid.*race.*'):
-        #     yield scrapy.Request(self.make_url(url), self.parse_horse)
-        return scrapy.Request("https://race.netkeiba.com/?pid=race&id=c201807040311&mode=shutuba", self.parse_horse)
+        for url in response.css('.RaceList_Box dt a::attr(href)').re(r'/\?pid.*race.*'):
+            yield scrapy.Request(self.make_url(url), self.parse_horse)
 
     def make_url(self, url):
         #    http://race.netkeiba.com/?pid=race_old&id=c201805050801 #
