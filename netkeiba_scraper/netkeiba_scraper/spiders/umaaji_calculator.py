@@ -71,6 +71,9 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         horse_data = {}
         horse_data['name'] = horse.css('.h_name a::text').extract_first()
 
+        horse_data['gate'] = horse.css('td')[0].css('span::text').extract_first()
+        horse_data['number'] = horse.css('.umaban::text').extract_first()
+
         age_sex = horse.css('.txt_l')[1].css('::text').extract_first()
         regexp = re.compile("(牡|牝|セ)([0-9]{1,2})")
         match = regexp.search(age_sex)
