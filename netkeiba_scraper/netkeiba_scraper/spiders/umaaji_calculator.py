@@ -13,7 +13,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
     def parse(self, response):
         # 本日のレース一覧からレース情報URLをパース #
         for url in response.css('.RaceList_Box dt a::attr(href)').re(r'/\?pid.*race.*'):
-            yield scrapy.Request(self.make_url(url), self.parse_horse)
+            yield scrapy.Request(self.make_url(url), self.parse_main)
 
     def make_url(self, url):
         #    http://race.netkeiba.com/?pid=race_old&id=c201805050801 #
@@ -25,7 +25,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         # -> http://race.netkeiba.com/?pid=race&id=c201805050801&mode=shutuba #
         return self.start_urls[0] + re.sub('mode=top', 'mode=shutuba', url)
 
-    def parse_horse(self, response):
+    def parse_main(self, response):
         result = self.get_race_data(response)
         result['horses'] = []
         for (index, horse) in enumerate(response.css('#shutuba table tr')):
@@ -43,12 +43,30 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         
         race_data = {}
         race_data['name'] = racedata.css('h1::text').extract_first().strip()
+        race_data['place'] = self.get_place(response.css('.race_otherdata p::text').extract_first())
+        race_data['round'] = self.get_round(response.css('.racedata dt::text').extract_first())
+
         regexp = re.compile("(芝|ダ)([0-9]{4})")
         match = regexp.search(response.css('p::text').extract_first())
         race_data['ground'] = match.group(1)
         race_data['distance'] = match.group(2)
+
         race_data['grade'] = self.parse_grade(self.get_race_grade(response.css('.data_intro')))
         return race_data
+
+    def get_place(self, text):
+        regexp = re.compile("([0-9]{1,2}回)(.+)[0-9]{1,2}日目")
+        match = regexp.search(text)
+        if match:
+            return match.group(2)
+        return ''
+
+    def get_round(self, text):
+        regexp = re.compile("[0-9]{1,2}")
+        match = regexp.search(text)
+        if match:
+            return match.group(0)
+        return ''
 
     def get_race_grade(self, race_html):
         regexp = re.compile("([０-９]{3,4}|未勝利|新馬)")
