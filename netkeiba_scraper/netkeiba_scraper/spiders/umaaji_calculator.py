@@ -122,6 +122,10 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             
             past_race['grade'] = self.parse_grade(self.get_grade(past_race_html))
 
+            date_place = self.get_date_place(past_race_html)
+            past_race['place'] = date_place['place']
+            past_race['date'] = date_place['date']
+
             condition = self.get_condition(past_race_html)
             past_race['ground'] = condition['ground']
             past_race['distance'] = condition['distance']
@@ -157,6 +161,20 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             grade = re.sub(before, after, grade)
         
         return grade
+
+    def get_date_place(self, past_race_html):
+        date_place = { 'date': '', 'place': '' }
+        date_place_raw = past_race_html.css('.inner::text').extract_first()
+        if date_place_raw == None:
+            return date_place
+        
+        date_place_array = date_place_raw.replace('\n', '').split('\xa0')
+        if len(date_place_array) == 0:
+            return date_place
+
+        date_place['date'] = date_place_array[0]
+        date_place['place'] = date_place_array[1]
+        return date_place
 
     def get_condition(self, past_race_html):
         condition_raw = past_race_html.css('.racebox').extract_first()
