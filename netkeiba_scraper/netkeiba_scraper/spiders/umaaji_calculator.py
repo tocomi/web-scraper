@@ -150,6 +150,10 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
             past_race['diff'] = self.get_diff(past_race_html)
 
+            jockey_handi = self.get_jockey_handi(past_race_html)
+            past_race['jockey'] = jockey_handi['jockey']
+            past_race['handi'] = jockey_handi['handi']
+            
             past_races.append(past_race)
         
         return past_races
@@ -189,7 +193,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         date_place['date'] = date_place_array[0]
         date_place['place'] = date_place_array[1]
         return date_place
-
+    
     def get_condition(self, past_race_html):
         condition_raw = past_race_html.css('.racebox').extract_first()
         return self.parse_condition(condition_raw)
@@ -213,3 +217,20 @@ class UmaajiCalculatorSpider(scrapy.Spider):
     def get_diff(self, past_race_html):
         diff = past_race_html.css('.h_name_01::text').extract_first()
         return re.sub(r"(\(|\))", '', diff) if diff != None else diff
+    
+    def get_jockey_handi(self, past_race_html):
+        jockey_handi = { 'jockey': '', 'handi': '' }
+        jockey_handi_raw = past_race_html.css('.race_data::text').extract_first()
+        if jockey_handi_raw == None:
+            return jockey_handi
+        
+        jockey_handi_str = jockey_handi_raw.split('\xa0')[1]
+
+        regexp = re.compile("(.+)([0-9]{2}\.[0-9]{1})")
+        match = regexp.search(jockey_handi_str)
+        if match == None:
+            return jockey_handi
+
+        jockey_handi['jockey'] = match.group(1)
+        jockey_handi['handi'] = match.group(2)
+        return jockey_handi
