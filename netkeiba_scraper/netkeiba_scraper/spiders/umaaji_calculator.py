@@ -38,6 +38,9 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         
         yield result
 
+    """
+    レース情報の取得
+    """
     def get_race_data(self, response):
         racedata = response.css('.racedata dd')
         
@@ -85,6 +88,9 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
         return ''
 
+    """
+    出走馬データの取得
+    """
     def get_horse_data(self, horse):
         horse_data = {}
         horse_data['name'] = horse.css('.h_name a::text').extract_first()
@@ -107,12 +113,22 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         rank = horse.css('.txt_c::text').extract()[1]
         regexp = re.compile("[0-9]{1,2}")
         match = regexp.search(rank)
-        horse_data['rank'] = match.group(0)
+        if match == None:
+            horse_data['rank'] = ''
+        else:
+            horse_data['rank'] = match.group(0)
 
         horse_data['jockey'] = horse.css('.txt_l')[1].css('a::text').extract_first()
 
+        horse_data['past_races'] = self.get_past_races(horse.css('.txt_l')[2:7])
+
+        return horse_data
+
+    """
+    過去出走データの取得
+    """
+    def get_past_races(self, past_race_html_list):
         past_races = []
-        past_race_html_list = horse.css('.txt_l')[2:7]
         for past_race_html in past_race_html_list:
             past_race = {}
 
@@ -135,11 +151,9 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             past_race['diff'] = self.get_diff(past_race_html)
 
             past_races.append(past_race)
-
-        horse_data['past_races'] = past_races
-
-        return horse_data
-
+        
+        return past_races
+    
     def get_grade(self, past_race_html):
         grade = past_race_html.css('.race_grade::text').extract_first()
         if grade != None:
