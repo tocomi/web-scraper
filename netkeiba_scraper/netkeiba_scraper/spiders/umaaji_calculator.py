@@ -46,7 +46,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         
         race_data = {}
         race_data['name'] = racedata.css('h1::text').extract_first().strip()
-        race_data['place'] = self.get_place(response.css('.race_otherdata p::text').extract_first())
+        race_data['place'] = self.get_place(response.css('.race_otherdata p::text').extract()[1])
         race_data['round'] = self.get_round(response.css('.racedata dt::text').extract_first())
 
         regexp = re.compile("(芝|ダ)([0-9]{4})")
