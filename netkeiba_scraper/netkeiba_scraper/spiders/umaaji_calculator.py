@@ -77,7 +77,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         if match:
             return match.group(1)
 
-        match = regexp.search(race_html.css('.race_otherdata p::text').extract_first())
+        match = regexp.search(race_html.css('.race_otherdata p::text').extract()[1])
         if match:
             return match.group(1)
 
