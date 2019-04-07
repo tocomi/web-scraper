@@ -81,7 +81,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         if match:
             return match.group(1)
 
-        regexp = re.compile("(g1|g2|g3|op)")
+        regexp = re.compile("(g1|g2|g3|op|l)")
         match = regexp.search(race_html.css('.racedata h1 img::attr(src)').extract_first())
         if match:
             return match.group(1).upper()
