@@ -58,7 +58,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         return race_data
 
     def get_place(self, text):
-        regexp = re.compile("([0-9]{1,2}回)(.+)[0-9]{1,2}日目")
+        regexp = re.compile("([0-9]{1,2}回)(.+?)[0-9]{1,2}日目")
         match = regexp.search(text)
         if match:
             return match.group(2)
