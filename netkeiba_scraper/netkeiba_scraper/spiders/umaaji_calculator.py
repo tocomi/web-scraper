@@ -72,12 +72,12 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         return ''
 
     def get_race_grade(self, race_html):
-        regexp = re.compile("([０-９]{3,4}|未勝利|新馬)")
+        regexp = re.compile("([０-９]{3,4}|[１-３]勝|未勝利|新馬)")
         match = regexp.search(race_html.css('.racedata dd h1::text').extract_first())
         if match:
             return match.group(1)
 
-        match = regexp.search(race_html.css('.race_otherdata p::text').extract()[1])
+        match = regexp.search(race_html.css('.race_otherdata p::text').extract()[2])
         if match:
             return match.group(1)
 
@@ -168,7 +168,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         grade = past_race_html.css('.race_name a::text').extract_first()
         if grade == None:
             return ''
-        regexp = re.compile("([０-９]{3,4}|未勝利|新馬)")
+        regexp = re.compile("([０-９]{3,4}|[１-３]勝クラス|未勝利|新馬)")
         match = regexp.search(grade)
         return match.group(0) if match != None else ''
 
