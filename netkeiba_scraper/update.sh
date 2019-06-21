@@ -1,5 +1,7 @@
 #!/bin/bash
 
+FIREBASE_STORAGE=gs://umaaji-calculator.appspot.com
+
 if [ -e result.json ]; then
   rm result.json
   echo removed old result.json
