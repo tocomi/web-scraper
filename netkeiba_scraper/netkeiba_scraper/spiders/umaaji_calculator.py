@@ -172,7 +172,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         match = regexp.search(grade)
         return match.group(0) if match != None else ''
 
-    replace_target = { '０': '0', '１': '1', '２': '2', '３': '3', '５': '5', '６': '6', '下': '' }
+    replace_target = { '０': '0', '１': '1', '２': '2', '３': '3', '５': '5', '６': '6', '下': '' , 'ク': '', 'ラ': '', 'ス': ''}
     def parse_grade(self, grade):
         if grade == '':
             return grade
