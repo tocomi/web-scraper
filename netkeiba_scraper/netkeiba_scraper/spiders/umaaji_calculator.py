@@ -8,7 +8,8 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
     name = 'umaaji_calculator'
     allowed_domains = ['race.netkeiba.com']
-    start_urls = ['http://race.netkeiba.com/']
+    base_url = 'http://race.netkeiba.com/'
+    start_urls = [ base_url ]
 
     def parse(self, response):
         # 本日のレース一覧からレース情報URLをパース #
@@ -19,11 +20,11 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         #    http://race.netkeiba.com/?pid=race_old&id=c201805050801 #
         # -> http://race.netkeiba.com/?pid=race&id=c201805050801&mode=shutuba #
         if 'race_old' in url:
-            return self.start_urls[0] + re.sub('race_old', 'race', url) + '&mode=shutuba'
+            return self.base_url + re.sub('race_old', 'race', url) + '&mode=shutuba'
         
         #    http://race.netkeiba.com/?pid=race&id=c201805050801&mode=top #
         # -> http://race.netkeiba.com/?pid=race&id=c201805050801&mode=shutuba #
-        return self.start_urls[0] + re.sub('mode=top', 'mode=shutuba', url)
+        return self.base_url + re.sub('mode=top', 'mode=shutuba', url)
 
     def parse_main(self, response):
         result = self.get_race_data(response)
