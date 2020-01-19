@@ -26,7 +26,7 @@ ROBOTSTXT_OBEY = True
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 0.5
+DOWNLOAD_DELAY = 1
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
@@ -45,15 +45,19 @@ DOWNLOAD_DELAY = 0.5
 
 # Enable or disable spider middlewares
 # See https://doc.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
-#    'netkeiba_scraper.middlewares.NetkeibaScraperSpiderMiddleware': 543,
-#}
+SPIDER_MIDDLEWARES = {
+    'scrapy_splash.SplashDeduplicateArgsMiddleware': 100,
+    'netkeiba_scraper.middlewares.NetkeibaScraperSpiderMiddleware': 543,
+}
 
 # Enable or disable downloader middlewares
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
-#DOWNLOADER_MIDDLEWARES = {
-#    'netkeiba_scraper.middlewares.NetkeibaScraperDownloaderMiddleware': 543,
-#}
+DOWNLOADER_MIDDLEWARES = {
+    'netkeiba_scraper.middlewares.NetkeibaScraperDownloaderMiddleware': 543,
+    'scrapy_splash.SplashCookiesMiddleware': 723,
+    'scrapy_splash.SplashMiddleware': 725,
+    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
+}
 
 # Enable or disable extensions
 # See https://doc.scrapy.org/en/latest/topics/extensions.html
@@ -64,7 +68,7 @@ DOWNLOAD_DELAY = 0.5
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   'netkeiba_scraper.pipelines.NetkeibaScraperPipeline': 500,
+    'netkeiba_scraper.pipelines.NetkeibaScraperPipeline': 500,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -88,5 +92,9 @@ ITEM_PIPELINES = {
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
-DOWNLOAD_DELAY = 1
 FEED_EXPORT_ENCODING='utf-8'
+
+# For Splash
+SPLASH_URL='http://192.168.11.26:8050'
+DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
+HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'

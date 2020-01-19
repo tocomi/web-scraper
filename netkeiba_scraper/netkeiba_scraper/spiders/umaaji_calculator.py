@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
 import scrapy
 import re
+from scrapy_splash import SplashRequest
 
 from netkeiba_scraper.items import HorseData
 
 class UmaajiCalculatorSpider(scrapy.Spider):
 
     name = 'umaaji_calculator'
-    allowed_domains = ['race.netkeiba.com']
+    allowed_domains = [ 'race.netkeiba.com' ]
     base_url = 'http://race.netkeiba.com/'
     start_urls = [ base_url ]
+
+    def start_requests(self):
+        yield SplashRequest(self.start_urls[0], self.parse, args={ 'wait': 3.0 })
 
     def parse(self, response):
         # 本日のレース一覧からレース情報URLをパース #
