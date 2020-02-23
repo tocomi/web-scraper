@@ -151,6 +151,9 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
             name = past_race_html.css('.Data02 a::text').extract_first()
             if name == None:
+                name_raw = past_race_html.css('.Data01')
+                if not name_raw:
+                    return {}
                 name = past_race_html.css('.Data01')[0].css('::text').extract_first()
             past_race['name'] = name.strip()
             
