@@ -95,6 +95,6 @@ ITEM_PIPELINES = {
 FEED_EXPORT_ENCODING='utf-8'
 
 # For Splash
-SPLASH_URL='http://192.168.11.26:8050'
+SPLASH_URL='http://localhost:8050'
 DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
 HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'
