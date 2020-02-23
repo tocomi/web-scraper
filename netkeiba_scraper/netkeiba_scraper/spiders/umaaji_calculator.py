@@ -86,10 +86,22 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         if match:
             return match.group(1)
 
+        grade_raw = race_html.css('.RaceName span::attr(class)').extract_first().split(' ')[1]
+
+        regexp = re.compile("15")
+        match = regexp.search(grade_raw)
+        if match:
+            return 'L'
+
+        regexp = re.compile("5")
+        match = regexp.search(grade_raw)
+        if match:
+            return 'OP'
+
         regexp = re.compile("(1|2|3)")
         # Icon_GradeType3 #
         # -> 3 #
-        match = regexp.search(race_html.css('.RaceName span::attr(class)').extract_first().split(' ')[1])
+        match = regexp.search(grade_raw)
         if match:
             return 'G' + match.group(1)
 
