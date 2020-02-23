@@ -9,22 +9,28 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
     name = 'umaaji_calculator'
     allowed_domains = [ 'race.netkeiba.com' ]
-    base_url = 'http://race.netkeiba.com/'
+    base_url = 'https://race.netkeiba.com/'
     start_urls = [ base_url ]
 
     def start_requests(self):
-        yield SplashRequest(self.start_urls[0], self.parse, args={ 'wait': 3.0 })
+        yield SplashRequest(self.start_urls[0], self.parse, args={ 'wait': 5.0 })
 
     def parse(self, response):
         # 本日のレース一覧からレース情報URLをパース #
-        for url in response.css('.RaceList_Box dt a::attr(href)').re(r'/\?pid.*race.*'):
+        # FIXME: movieへのリンクを弾く
+        for url in response.css('.RaceList_Box li a::attr(href)').re(r'race/.*race_id.*'):
+            if 'movie.html' in url:
+                continue
+            # FIXME: Splashを使うと処理が止まってしまう
+            # yield SplashRequest(self.make_url(url), self.parse_main, args={ 'wait': 1.0 })
             yield scrapy.Request(self.make_url(url), self.parse_main)
 
     def make_url(self, url):
-        #    http://race.netkeiba.com/?pid=race_old&id=c201805050801 #
-        # -> http://race.netkeiba.com/?pid=race&id=c201805050801&mode=shutuba #
-        if 'race_old' in url:
-            return self.base_url + re.sub('race_old', 'race', url) + '&mode=shutuba'
+        #    race/result.html?race_id=202006010704&rf=race_list #
+        # -> https://race.netkeiba.com/race/shutuba_past.html?race_id=202006010704&rf=shutuba_submenu #
+        if 'result.html' in url:
+            html_replaced_url = re.sub('result', 'shutuba_past', url)
+            return self.base_url + re.sub('race_list', 'shutuba_submenu', html_replaced_url)
         
         #    http://race.netkeiba.com/?pid=race&id=c201805050801&mode=top #
         # -> http://race.netkeiba.com/?pid=race&id=c201805050801&mode=shutuba #
@@ -33,13 +39,11 @@ class UmaajiCalculatorSpider(scrapy.Spider):
     def parse_main(self, response):
         result = self.get_race_data(response)
         result['horses'] = []
-        for (index, horse) in enumerate(response.css('#shutuba table tr')):
-            # 1行目はヘッダー #
-            if index == 0:
-                continue
+        for (index, horse_html) in enumerate(response.css('.HorseList')):
 
-            horse_data = self.get_horse_data(horse)
-            result['horses'].append(horse_data)
+            horse_data = self.get_horse_data(horse_html)
+            if horse_data:
+                result['horses'].append(horse_data)
         
         yield result
 
@@ -47,19 +51,19 @@ class UmaajiCalculatorSpider(scrapy.Spider):
     レース情報の取得
     """
     def get_race_data(self, response):
-        racedata = response.css('.racedata dd')
+        racedata = response.css('.RaceList_NameBox')
         
         race_data = {}
-        race_data['name'] = racedata.css('h1::text').extract_first().strip()
-        race_data['place'] = self.get_place(response.css('.race_otherdata p::text').extract()[1])
-        race_data['round'] = self.get_round(response.css('.racedata dt::text').extract_first())
+        race_data['name'] = racedata.css('.RaceName::text').extract_first().strip()
+        race_data['place'] = racedata.css('.RaceData02 span::text').extract()[1]
+        race_data['round'] = self.get_round(racedata.css('.RaceNum::text').extract_first())
 
         regexp = re.compile("(芝|ダ)([0-9]{4})")
-        match = regexp.search(response.css('p::text').extract_first())
+        match = regexp.search(racedata.css('.RaceData01 span::text').extract_first().strip())
         race_data['ground'] = match.group(1)
         race_data['distance'] = match.group(2)
 
-        race_data['grade'] = self.parse_grade(self.get_race_grade(response.css('.data_intro')))
+        race_data['grade'] = self.parse_grade(self.get_race_grade(racedata))
         return race_data
 
     def get_place(self, text):
@@ -78,20 +82,16 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
     def get_race_grade(self, race_html):
         regexp = re.compile("([０-９]{3,4}|[１-３]勝|未勝利|新馬)")
-        match = regexp.search(race_html.css('.racedata dd h1::text').extract_first())
+        match = regexp.search(race_html.css('.RaceData02 span::text').extract()[4])
         if match:
             return match.group(1)
 
-        match = regexp.search(race_html.css('.race_otherdata p::text').extract()[2])
+        regexp = re.compile("(1|2|3)")
+        # Icon_GradeType3 #
+        # -> 3 #
+        match = regexp.search(race_html.css('.RaceName span::attr(class)').extract_first().split(' ')[1])
         if match:
-            return match.group(1)
-
-        regexp = re.compile("(g1|g2|g3|op|l)")
-        # https://cdn.netkeiba.com/img.race/style/netkeiba.ja/image/race_grade_g1_01.png #
-        # -> race_grade_g1_01.png #
-        match = regexp.search(race_html.css('.racedata h1 img::attr(src)').extract_first().split('/')[-1])
-        if match:
-            return match.group(1).upper()
+            return 'G' + match.group(1)
 
         return ''
 
@@ -100,35 +100,45 @@ class UmaajiCalculatorSpider(scrapy.Spider):
     """
     def get_horse_data(self, horse):
         horse_data = {}
-        horse_data['name'] = horse.css('.h_name a::text').extract_first()
+        name = horse.css('.Horse02 a::text').extract_first()
 
-        horse_data['gate'] = horse.css('td')[0].css('span::text').extract_first()
-        horse_data['number'] = horse.css('.umaban::text').extract_first()
+        # NOTE: 出馬表以外も取ってきてしまうのでここで弾く
+        if not name:
+            return {}
 
-        age_sex = horse.css('.txt_l')[1].css('::text').extract_first()
+        horse_data['name'] = name.strip()
+
+        horse_data['gate'] = horse.css('td::text').extract_first()
+        horse_data['number'] = horse.css('.Waku::text').extract_first()
+
+        age_sex = horse.css('.Barei::text').extract_first()
         regexp = re.compile("(牡|牝|セ)([0-9]{1,2})")
         match = regexp.search(age_sex)
         horse_data['sex'] = match.group(1)
         horse_data['age'] = match.group(2)
 
-        handi = horse.css('.txt_l')[1].css('::text').extract()[1]
+        handi = horse.css('.Jockey span')[1].css('::text').extract_first()
         horse_data['handi'] = handi.strip()
 
-        odds = horse.css('.txt_c::text').extract_first()
-        horse_data['odds'] = odds.strip()
+        # FIXME: オッズと人気順が非同期処理になっていて取得できない
+        # odds = horse.css('.Popular span')[0].css('::text').extract_first()
+        # horse_data['odds'] = odds.strip()
 
-        rank = horse.css('.txt_c::text').extract()[1]
-        regexp = re.compile("[0-9]{1,2}")
-        match = regexp.search(rank)
-        if match == None:
-            horse_data['rank'] = ''
-        else:
-            horse_data['rank'] = match.group(0)
+        # rank = horse.css('.txt_c::text').extract()[1]
+        # regexp = re.compile("[0-9]{1,2}")
+        # match = regexp.search(rank)
+        # if match == None:
+        #     horse_data['rank'] = ''
+        # else:
+        #     horse_data['rank'] = match.group(0)
+        horse_data['odds'] = '0.0'
+        horse_data['rank'] = '0'
 
-        horse_data['jockey'] = horse.css('.txt_l')[1].css('a::text').extract_first()
+        horse_data['jockey'] = horse.css('.Jockey a::text').extract_first()
 
-        horse_data['past_races'] = self.get_past_races(horse.css('.txt_l')[2:7])
+        horse_data['past_races'] = self.get_past_races(horse.css('.Past, .Rest'))
 
+        print(horse_data)
         return horse_data
 
     """
@@ -139,9 +149,10 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         for past_race_html in past_race_html_list:
             past_race = {}
 
-            past_race['name'] = past_race_html.css('.race_name a::text').extract_first()
-            if past_race['name'] == None:
-                past_race['name'] = past_race_html.css('.race_name::text').extract_first()
+            name = past_race_html.css('.Data02 a::text').extract_first()
+            if name == None:
+                name = past_race_html.css('.Data01')[0].css('::text').extract_first()
+            past_race['name'] = name.strip()
             
             past_race['grade'] = self.parse_grade(self.get_grade(past_race_html))
 
@@ -166,14 +177,14 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         return past_races
     
     def get_grade(self, past_race_html):
-        grade = past_race_html.css('.race_grade::text').extract_first()
+        grade = past_race_html.css('.Icon_GradeType::text').extract_first()
         if grade != None:
             return grade
 
-        grade = past_race_html.css('.race_name a::text').extract_first()
+        grade = past_race_html.css('.Data02 a::text').extract_first()
         if grade == None:
             return ''
-        regexp = re.compile("([０-９]{3,4}|[１-３]勝|未勝利|新馬)")
+        regexp = re.compile("([0-9]{3,4}|[1-3]勝|未勝利|新馬)")
         match = regexp.search(grade)
         return match.group(0) if match != None else ''
 
@@ -182,6 +193,13 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         if grade == '':
             return grade
 
+        if grade == 'GI':
+            return 'G1'
+        if grade == 'GII':
+            return 'G2'
+        if grade == 'GIII':
+            return 'G3'
+
         for (before, after) in self.replace_target.items():
             grade = re.sub(before, after, grade)
         
@@ -189,7 +207,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
     def get_date_place(self, past_race_html):
         date_place = { 'date': '', 'place': '' }
-        date_place_raw = past_race_html.css('.inner::text').extract_first()
+        date_place_raw = past_race_html.css('.Data01 span::text').extract_first()
         if date_place_raw == None:
             return date_place
         
@@ -202,42 +220,41 @@ class UmaajiCalculatorSpider(scrapy.Spider):
         return date_place
     
     def get_condition(self, past_race_html):
-        condition_raw = past_race_html.css('.racebox').extract_first()
+        condition_raw = past_race_html.css('.Data05')
         return self.parse_condition(condition_raw)
     
     def parse_condition(self, condition_raw):
         condition = { 'ground': '', 'distance': '', 'time': '', 'status': '' }
-        if condition_raw == None:
+
+        condition_text = condition_raw.css('::text').extract_first()
+        if condition_text == None:
             return condition
 
-        regexp = re.compile("(芝|ダ)([0-9]{4})\xa0([0-9]{1}:[0-9]{2}.[0-9]{1})\xa0(良|稍|重|不)")
-        match = regexp.search(condition_raw)
+        status_text = condition_raw.css('strong::text').extract_first()
+
+        regexp = re.compile("(芝|ダ)([0-9]{3,4}).*([0-9]{1}:[0-9]{2}\.[0-9]{1})")
+        match = regexp.search(condition_text)
         if match == None:
             return condition
 
         condition['ground'] = match.group(1)
         condition['distance'] = match.group(2)
         condition['time'] = match.group(3)
-        condition['status'] = match.group(4)
+        condition['status'] = status_text
         return condition
     
     def get_diff(self, past_race_html):
-        diff = past_race_html.css('.h_name_01::text').extract_first()
+        diff = past_race_html.css('.Data07::text').extract_first()
         return re.sub(r"(\(|\))", '', diff) if diff != None else diff
     
     def get_jockey_handi(self, past_race_html):
         jockey_handi = { 'jockey': '', 'handi': '' }
-        jockey_handi_raw = past_race_html.css('.race_data::text').extract_first()
+        jockey_handi_raw = past_race_html.css('.Data03::text').extract_first()
         if jockey_handi_raw == None:
             return jockey_handi
-        
-        jockey_handi_str = jockey_handi_raw.split('\xa0')[1]
 
-        regexp = re.compile("(.+)([0-9]{2}\.[0-9]{1})")
-        match = regexp.search(jockey_handi_str)
-        if match == None:
-            return jockey_handi
+        jocket_handi_str = jockey_handi_raw.split('\xa0')[2].split(' ')
 
-        jockey_handi['jockey'] = match.group(1)
-        jockey_handi['handi'] = match.group(2)
+        jockey_handi['jockey'] = jocket_handi_str[1]
+        jockey_handi['handi'] = jocket_handi_str[2]
         return jockey_handi
