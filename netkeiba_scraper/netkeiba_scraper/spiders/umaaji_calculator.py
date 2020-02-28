@@ -32,9 +32,10 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             html_replaced_url = re.sub('result', 'shutuba_past', url)
             return self.base_url + re.sub('race_list', 'shutuba_submenu', html_replaced_url)
         
-        #    http://race.netkeiba.com/?pid=race&id=c201805050801&mode=top #
-        # -> http://race.netkeiba.com/?pid=race&id=c201805050801&mode=shutuba #
-        return self.base_url + re.sub('mode=top', 'mode=shutuba', url)
+        #    race/shutuba.html?race_id=202007010105&rf=race_list #
+        # -> https://race.netkeiba.com/race/shutuba_past.html?race_id=202007010105&rf=shutuba_submenu #
+        html_replaced_url = re.sub('shutuba', 'shutuba_past', url)
+        return self.base_url + re.sub('race_list', 'shutuba_submenu', html_replaced_url)
 
     def parse_main(self, response):
         result = self.get_race_data(response)
