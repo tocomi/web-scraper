@@ -17,7 +17,6 @@ class UmaajiCalculatorSpider(scrapy.Spider):
 
     def parse(self, response):
         # 本日のレース一覧からレース情報URLをパース #
-        # FIXME: movieへのリンクを弾く
         for url in response.css('.RaceList_Box li a::attr(href)').re(r'race/.*race_id.*'):
             if 'movie.html' in url:
                 continue
@@ -166,7 +165,7 @@ class UmaajiCalculatorSpider(scrapy.Spider):
             if name == None:
                 name_raw = past_race_html.css('.Data01')
                 if not name_raw:
-                    return {}
+                    continue
                 name = past_race_html.css('.Data01')[0].css('::text').extract_first()
             past_race['name'] = name.strip()
             
