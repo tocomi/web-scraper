@@ -9,4 +9,6 @@ fi
 
 scrapy crawl umaaji_calculator -o result.json
 
-gsutil cp result.json ${FIREBASE_STORAGE}/result.json
+if [ -s result.json ]; then
+  gsutil cp result.json ${FIREBASE_STORAGE}/result.json
+fi
